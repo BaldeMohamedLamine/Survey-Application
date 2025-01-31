@@ -1,0 +1,16 @@
+# Ignorer le dossier de l'environnement virtuel
+env/
+
+# Ignorer les fichiers de configuration de l'IDE
+*.pyc
+__pycache__/
+*.pyo
+*.pyd
+*.db
+*.sqlite3
+
+# Ignorer les fichiers de log
+*.log
+
+# Ignorer les fichiers de cache
+.cache/

@@ -1,0 +1,10 @@
+{% extends "surveys_app/base.html" %}
+{% block content %}
+<h2>Supprimer le sondage : {{ object.title }}</h2>
+<p>Êtes-vous sûr de vouloir supprimer ce sondage ? Cette action est irréversible.</p>
+<form method="post">
+    {% csrf_token %}
+    <button type="submit" class="btn btn-danger">Supprimer</button>
+    <a href="{% url 'surveys_app:survey-list' %}" class="btn btn-secondary">Annuler</a>
+</form>
+{% endblock %}

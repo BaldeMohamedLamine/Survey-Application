@@ -1,0 +1,147 @@
+{% extends 'surveys_app/base.html' %}
+
+{% block title %}Liste des sondages{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <!-- En-tête avec filtres -->
+    <div class="card shadow-sm mb-4">
+        <div class="card-body">
+            <div class="row align-items-center">
+                <div class="col-md-6">
+                    <h3 class="mb-0">Mes sondages</h3>
+                </div>
+                <div class="col-md-6">
+                    <form method="get" class="d-flex gap-2">
+                        <input type="text" name="search" class="form-control" placeholder="Rechercher un sondage..."
+                               value="{{ request.GET.search }}">
+                        <select name="status" class="form-select" style="width: auto;">
+                            <option value="">Tous les statuts</option>
+                            <option value="active" {% if request.GET.status == 'active' %}selected{% endif %}>Publiés</option>
+                            <option value="inactive" {% if request.GET.status == 'inactive' %}selected{% endif %}>Non publiés</option>
+                        </select>
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-search"></i>
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Liste des sondages -->
+    <div class="row g-4">
+        {% for survey in surveys %}
+        <div class="col-md-6 col-lg-4">
+            <div class="card h-100 shadow-sm">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-start mb-3">
+                        <h5 class="card-title mb-0">{{ survey.title }}</h5>
+                        <span class="badge {% if survey.is_active %}bg-success{% else %}bg-secondary{% endif %}">
+                            {% if survey.is_active %}Actif{% else %}Inactif{% endif %}
+                        </span>
+                    </div>
+                    <p class="card-text text-muted small mb-3">
+                        {{ survey.description|truncatechars:100 }}
+                    </p>
+                    <div class="d-flex justify-content-between align-items-center small text-muted mb-3">
+                        <span>
+                            <i class="fas fa-calendar me-1"></i>
+                            {{ survey.start_date|date:"d/m/Y" }}
+                        </span>
+                        <a href="{% url 'surveys_app:survey-results' survey.pk %}" class="text-decoration-none">
+                            <span class="text-primary">
+                                <i class="fas fa-users me-1"></i>
+                                {{ survey.response_set.count }} réponses
+                            </span>
+                        </a>
+                    </div>
+                    <div class="d-flex gap-2">
+                        {% if not survey.is_published %}
+                        <a href="{% url 'surveys_app:survey-update' survey.pk %}" class="btn btn-outline-secondary btn-sm">
+                            <i class="fas fa-edit me-1"></i>Modifier
+                        </a>
+                        <form method="post" action="{% url 'surveys_app:publish-survey' survey.uid %}" class="d-inline">
+                            {% csrf_token %}
+                            <button type="submit" class="btn btn-success btn-sm">
+                                <i class="fas fa-play me-1"></i>Publier
+                            </button>
+                        </form>
+                        <form method="post" action="{% url 'surveys_app:survey-delete' survey.pk %}" class="d-inline"
+                              onsubmit="return confirm('Êtes-vous sûr de vouloir supprimer ce sondage ?');">
+                            {% csrf_token %}
+                            <button type="submit" class="btn btn-danger btn-sm">
+                                <i class="fas fa-trash me-1"></i>Supprimer
+                            </button>
+                        </form>
+                        {% else %}
+                        <span class="badge bg-info">
+                            <i class="fas fa-lock me-1"></i>Publié
+                        </span>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% empty %}
+        <div class="col-12">
+            <div class="card shadow-sm">
+                <div class="card-body text-center py-5">
+                    <i class="fas fa-clipboard-list fa-3x text-muted mb-3"></i>
+                    <h5>Aucun sondage trouvé</h5>
+                    <p class="text-muted mb-3">Vous n'avez pas encore créé de sondage</p>
+                    <a href="{% url 'surveys_app:survey-step1' %}" class="btn btn-primary">
+                        <i class="fas fa-plus me-2"></i>Créer un sondage
+                    </a>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+
+    {% if surveys %}
+    <!-- Pagination -->
+    <nav aria-label="Page navigation" class="mt-4">
+        <ul class="pagination justify-content-center">
+            {% if page_obj.has_previous %}
+            <li class="page-item">
+                <a class="page-link" href="?page=1{% if request.GET.search %}&search={{ request.GET.search }}{% endif %}{% if request.GET.status %}&status={{ request.GET.status }}{% endif %}" aria-label="First">
+                    <span aria-hidden="true">&laquo;&laquo;</span>
+                </a>
+            </li>
+            <li class="page-item">
+                <a class="page-link" href="?page={{ page_obj.previous_page_number }}{% if request.GET.search %}&search={{ request.GET.search }}{% endif %}{% if request.GET.status %}&status={{ request.GET.status }}{% endif %}" aria-label="Previous">
+                    <span aria-hidden="true">&laquo;</span>
+                </a>
+            </li>
+            {% endif %}
+
+            {% for num in page_obj.paginator.page_range %}
+                {% if page_obj.number == num %}
+                    <li class="page-item active">
+                        <span class="page-link">{{ num }}</span>
+                    </li>
+                {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
+                    <li class="page-item">
+                        <a class="page-link" href="?page={{ num }}{% if request.GET.search %}&search={{ request.GET.search }}{% endif %}{% if request.GET.status %}&status={{ request.GET.status }}{% endif %}">{{ num }}</a>
+                    </li>
+                {% endif %}
+            {% endfor %}
+
+            {% if page_obj.has_next %}
+            <li class="page-item">
+                <a class="page-link" href="?page={{ page_obj.next_page_number }}{% if request.GET.search %}&search={{ request.GET.search }}{% endif %}{% if request.GET.status %}&status={{ request.GET.status }}{% endif %}" aria-label="Next">
+                    <span aria-hidden="true">&raquo;</span>
+                </a>
+            </li>
+            <li class="page-item">
+                <a class="page-link" href="?page={{ page_obj.paginator.num_pages }}{% if request.GET.search %}&search={{ request.GET.search }}{% endif %}{% if request.GET.status %}&status={{ request.GET.status }}{% endif %}" aria-label="Last">
+                    <span aria-hidden="true">&raquo;&raquo;</span>
+                </a>
+            </li>
+            {% endif %}
+        </ul>
+    </nav>
+    {% endif %}
+</div>
+{% endblock %}

@@ -1,0 +1,75 @@
+{% extends "surveys_app/base.html" %}
+
+{% block hero %}
+<div class="p-5 text-center" style="position: relative; height: 400px; overflow: hidden;">
+    <img
+        src="{{survey.image.url}}"
+        alt="Background"
+        style="width: 100%; height: 100%; object-fit: cover; position: absolute; top: 0; left: 0; z-index: -1;"
+    >
+    <div class="mask" style=" height: 100%; width: 100%; position: absolute; top: 0; left: 0;"></div>
+    <div class="d-flex justify-content-center align-items-center h-100">
+        <div class="text-white text-center">
+            <h2 class="mb-3">Ajouter des questions au sondage : {{ survey.title }}</h2>
+            <p class="mb-3">{{ survey.description }}</p>
+        </div>
+    </div>
+</div>
+{% endblock hero %}
+
+
+{% block content %}
+<div class="container">
+
+    <form id="questionForm" method="post">
+        {% csrf_token %}
+        <div id="questionsContainer"></div>
+        <button type="button" class="btn btn-primary" onclick="addQuestion()">Ajouter une question</button>
+        <br><br>
+        <button type="submit" class="btn btn-success">Enregistrer les questions</button>
+    </form>
+</div>
+
+<script>
+    let questionCount = 0;
+
+    function addQuestion() {
+        questionCount++;
+        const container = document.getElementById("questionsContainer");
+
+        const questionDiv = document.createElement("div");
+        questionDiv.classList.add("question-item");
+        questionDiv.innerHTML = `
+            <h5>Question ${questionCount}</h5>
+            <div>
+                <label for="questions_${questionCount}">Texte de la question :</label>
+                <input type="text" name="questions[]" id="questions_${questionCount}" class="form-control" required>
+            </div>
+            <div>
+                <label for="types_${questionCount}">Type de réponse :</label>
+                <select name="types[]" id="types_${questionCount}" class="form-select" onchange="handleTypeChange(${questionCount})">
+                    <option value="single">Réponse unique</option>
+                    <option value="multiple">Réponse multiple</option>
+                    <option value="text">Réponse texte</option>
+                </select>
+            </div>
+            <div id="choicesContainer_${questionCount}" style="display: none;">
+                <label>Choix :</label>
+                <textarea name="choices[]" id="choices_${questionCount}" class="form-control" placeholder="Séparer les choix par une virgule"></textarea>
+            </div>
+            <hr>
+        `;
+        container.appendChild(questionDiv);
+    }
+
+    function handleTypeChange(index) {
+        const typeSelect = document.getElementById(`types_${index}`);
+        const choicesContainer = document.getElementById(`choicesContainer_${index}`);
+        if (typeSelect.value === "single" || typeSelect.value === "multiple") {
+            choicesContainer.style.display = "block";
+        } else {
+            choicesContainer.style.display = "none";
+        }
+    }
+</script>
+{% endblock %}

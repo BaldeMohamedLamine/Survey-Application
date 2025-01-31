@@ -1,0 +1,117 @@
+{% extends 'surveys_app/base.html' %}
+
+{% block title %}Inscription{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="row justify-content-center">
+        <div class="col-md-8 col-lg-6">
+            <div class="card shadow-sm mt-4">
+                <div class="card-header text-center py-4 bg-white">
+                    <h3 class="mb-0 text-secondary">Créer un compte</h3>
+                </div>
+                <div class="card-body p-4">
+                    <form method="post" class="needs-validation" novalidate>
+                        {% csrf_token %}
+
+                        {% if form.non_field_errors %}
+                        <div class="alert alert-danger bg-danger-subtle border-0">
+                            {% for error in form.non_field_errors %}
+                                {{ error }}
+                            {% endfor %}
+                        </div>
+                        {% endif %}
+
+                        <div class="form-floating mb-3">
+                            <input type="text" name="username" class="form-control {% if form.username.errors %}is-invalid{% endif %}"
+                                   id="username" placeholder="Nom d'utilisateur" required>
+                            <label for="username" class="text-muted">Nom d'utilisateur</label>
+                            {% if form.username.errors %}
+                            <div class="invalid-feedback">
+                                {{ form.username.errors|join:", " }}
+                            </div>
+                            {% endif %}
+                        </div>
+
+                        <div class="form-floating mb-3">
+                            <input type="email" name="email" class="form-control {% if form.email.errors %}is-invalid{% endif %}"
+                                   id="email" placeholder="Email" required>
+                            <label for="email" class="text-muted">Email</label>
+                            {% if form.email.errors %}
+                            <div class="invalid-feedback">
+                                {{ form.email.errors|join:", " }}
+                            </div>
+                            {% endif %}
+                        </div>
+
+                        <div class="form-floating mb-3">
+                            <input type="password" name="password" class="form-control {% if form.password.errors %}is-invalid{% endif %}"
+                                   id="password" placeholder="Mot de passe" required>
+                            <label for="password" class="text-muted">Mot de passe</label>
+                            {% if form.password.errors %}
+                            <div class="invalid-feedback">
+                                {{ form.password.errors|join:", " }}
+                            </div>
+                            {% endif %}
+                        </div>
+
+                        <div class="form-floating mb-4">
+                            <input type="password" name="confirm_password" class="form-control {% if form.confirm_password.errors %}is-invalid{% endif %}"
+                                   id="confirm_password" placeholder="Confirmer le mot de passe" required>
+                            <label for="confirm_password" class="text-muted">Confirmer le mot de passe</label>
+                            {% if form.confirm_password.errors %}
+                            <div class="invalid-feedback">
+                                {{ form.confirm_password.errors|join:", " }}
+                            </div>
+                            {% endif %}
+                        </div>
+
+                        <div class="mb-4">
+                            <label class="form-label text-muted">Type de compte</label>
+                            <div class="form-check">
+                                <input class="form-check-input" type="radio" name="role" id="role_creator" value="creator" required>
+                                <label class="form-check-label" for="role_creator">Créateur</label>
+                            </div>
+                            <div class="form-check">
+                                <input class="form-check-input" type="radio" name="role" id="role_participant" value="participant" required>
+                                <label class="form-check-label" for="role_participant">Participant</label>
+                            </div>
+                        </div>
+
+                        <div class="d-grid gap-2">
+                            <button type="submit" class="btn btn-primary">
+                                Créer mon compte
+                            </button>
+                        </div>
+                    </form>
+                </div>
+                <div class="card-footer text-center py-3 bg-white border-top">
+                    <div class="small">
+                        <a href="{% url 'account:login' %}" class="text-decoration-none text-secondary">
+                            Déjà inscrit ? Se connecter
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% block extra_js %}
+<script>
+    (function () {
+        'use strict'
+        var forms = document.querySelectorAll('.needs-validation')
+        Array.prototype.slice.call(forms).forEach(function (form) {
+            form.addEventListener('submit', function (event) {
+                if (!form.checkValidity()) {
+                    event.preventDefault()
+                    event.stopPropagation()
+                }
+                form.classList.add('was-validated')
+            }, false)
+        })
+    })()
+</script>
+{% endblock %}
+{% endblock %}
