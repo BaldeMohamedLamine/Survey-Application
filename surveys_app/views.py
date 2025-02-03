@@ -10,6 +10,7 @@ from django.db.models import Q, Count
 from django.http import HttpResponse
 from django.http import HttpResponseForbidden
 from django.shortcuts import get_object_or_404
+from django.core.exceptions import PermissionDenied
 from django.shortcuts import redirect
 from django.shortcuts import render
 from django.urls import reverse_lazy
@@ -45,7 +46,7 @@ class HomeView(ListView):
             is_published=True, 
             start_date__lte=today, 
             end_date__gte=today
-        )
+        ).order_by('title')
 
         search_query = self.request.GET.get('q')
         if search_query:
@@ -110,8 +111,7 @@ class SurveyListView(LoginRequiredMixin, ListView):
             queryset = queryset.filter(is_published=True)
         elif status == 'inactive':
             queryset = queryset.filter(is_published=False)
-
-        return queryset.order_by('-start_date')
+        return queryset.order_by('title')
 
 
 class SurveyStep1View(LoginRequiredMixin, CreateView):
@@ -120,7 +120,7 @@ class SurveyStep1View(LoginRequiredMixin, CreateView):
     template_name = 'surveys_app/survey_step1.html'
 
     def dispatch(self, request, *args, **kwargs):
-        if not request.user.is_creator():
+        if not request.user.is_authenticated or not request.user.is_creator():
             return HttpResponseForbidden("Seuls les créateurs peuvent créer des sondages.")
         return super().dispatch(request, *args, **kwargs)
     
@@ -178,8 +178,14 @@ class SurveyUpdateView(LoginRequiredMixin, UpdateView):
     template_name = 'surveys_app/survey_update.html'
     context_object_name = 'survey'
 
+    def get_object(self, queryset=None):
+        obj = super().get_object(queryset)
+        if obj.creator != self.request.user:
+            raise PermissionDenied("Vous n'avez pas la permission de modifier ce sondage.")
+        return obj
+    
     def get_queryset(self):
-        return Survey.objects.filter(creator=self.request.user)
+        return Survey.objects.all()
 
     def get_success_url(self):
         return reverse_lazy('surveys_app:survey-step2', kwargs={'uid': self.object.uid})
@@ -189,6 +195,7 @@ class SurveyUpdateView(LoginRequiredMixin, UpdateView):
             messages.success(self.request, "Les modifications ont été enregistrées avec succès.")
             return super().form_valid(form)
         return redirect('surveys_app:survey-step2', uid=self.object.uid)
+
 
 
 class SurveyDeleteView(LoginRequiredMixin, DeleteView):

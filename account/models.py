@@ -6,20 +6,21 @@ from django.dispatch import receiver
 from django.utils.crypto import get_random_string
 
 class UserManager(BaseUserManager):
-    def create_user(self, username, email, password=None):
+    def create_user(self, username, email, password=None, role='participant'):
         if not email:
-            raise ValueError('Users must have an email address')
-        user = self.model(username=username, email=self.normalize_email(email))
+            raise ValueError('Les utilisateurs doivent avoir une adresse e-mail')
+        user = self.model(username=username, email=self.normalize_email(email), role=role)
         user.set_password(password)
         user.save(using=self._db)
         return user
 
     def create_superuser(self, username, email, password=None):
-        user = self.create_user(username, email, password)
+        user = self.create_user(username, email, password)  
         user.is_staff = True
         user.is_superuser = True
         user.save(using=self._db)
         return user
+
 
 class User(AbstractBaseUser, PermissionsMixin):
     ROLE_CHOICES = [
@@ -56,11 +57,11 @@ class User(AbstractBaseUser, PermissionsMixin):
         return self.role == 'participant'
 
     def created_surveys_count(self):
-        from surveys_app.models import Survey  # Importation locale pour éviter la circularité
+        from surveys_app.models import Survey 
         return Survey.objects.filter(creator=self).count()
 
     def submitted_responses_count(self):
-        from surveys_app.models import Response  # Importation locale pour éviter la circularité
+        from surveys_app.models import Response  
         return Response.objects.filter(user=self).count()
 
 

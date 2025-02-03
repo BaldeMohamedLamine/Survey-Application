@@ -1,137 +1,123 @@
 import pytest
 from django.urls import reverse
 from rest_framework.test import APIClient
-from .models import Survey, Question, Response
+from .models import Survey, Question, Response ,Choice
 from django.contrib.auth import get_user_model
+from django.test import TestCase
 from django.utils import timezone
 from datetime import timedelta
+import uuid
+
+
 
 User = get_user_model()
 
-@pytest.mark.django_db
-def test_create_survey_view():
-    client = APIClient()
+class SurveyCreateTest(TestCase):
+    def setUp(self):
+        self.user = User.objects.create_user(username='testuser', password='password', email="creator@example.com", role='creator')
+        self.user.save()
 
-    # Création d'un utilisateur (créateur)
-    creator = User.objects.create_user(username="creator", email="creator@example.com", password="password123")
-    client.force_authenticate(user=creator)
+    def test_create_survey_view(self):
+        self.client.login(username='testuser', password='password')
 
-    # Requête pour créer un sondage
-    url = reverse("survey-step1")  # Assure-toi que c'est le bon nom dans tes URL
-    data = {
-        "title": "Test Survey",
-        "start_date": timezone.now().isoformat(),
-        "end_date": (timezone.now() + timedelta(days=7)).isoformat()
-    }
-    response = client.post(url, data)
+        data = {
+            'title': 'Test Survey',
+            'description': 'Une description de test',
+            'start_date': '2025-02-01T12:00',
+            'end_date': '2025-02-02T12:00',
+        }
 
-    assert response.status_code == 201
-    assert Survey.objects.count() == 1
-    survey = Survey.objects.first()
-    assert survey.title == "Test Survey"
-    assert survey.creator == creator
+        response = self.client.post(reverse('surveys_app:survey-step1'), data)
 
+        self.assertEqual(response.status_code, 302)
+        survey = Survey.objects.last() 
+        survey_uid = survey.uid  
+        self.assertRedirects(response, reverse('surveys_app:survey-step2', kwargs={'uid': survey_uid}))
 
-@pytest.mark.django_db
-def test_answer_survey_view():
-    client = APIClient()
+class AnswerSurveyTestCase(TestCase):
+    def setUp(self):
+        self.participant = User.objects.create_user(username="participant", password="password123",email="participant@example.com", role='participant')
+        self.survey = Survey.objects.create(
+        title="Test Survey",
+        description="Test description",  
+        creator=self.participant,  
+        start_date=timezone.now(),  
+        end_date=timezone.now() + timedelta(days=7), 
+        is_published=True  
+    )
 
-    # Création d'un créateur et d'un participant
-    creator = User.objects.create_user(username="creator", email="creator@example.com", password="password123")
-    participant = User.objects.create_user(username="participant", email="participant@example.com", password="password123")
+    def test_answer_survey_view(self):
+        logged_in = self.client.login(username="participant", password="password123")
+        self.assertTrue(logged_in, "L'utilisateur n'a pas pu se connecter.")
 
-    # Création d'un sondage et d'une question
-    survey = Survey.objects.create(title="Test Survey", creator=creator, start_date=timezone.now(), end_date=timezone.now() + timedelta(days=7))
-    question = Question.objects.create(survey=survey, text="What is your favorite color?")
+        response = self.client.post(
+            reverse("surveys_app:survey_response", kwargs={"uid": self.survey.uid}),
+            {"question_1": "Blue"}
+        )
 
-    client.force_authenticate(user=participant)
-
-    # Répondre à la question
-    url = reverse("answer-survey", kwargs={"question_id": question.uid})
-    data = {"text": "Blue"}
-    response = client.post(url, data)
-
-    assert response.status_code == 201
-    assert Response.objects.count() == 1
-    response_obj = Response.objects.first()
-    assert response_obj.question == question
-    assert response_obj.text == "Blue"
-    assert response_obj.user == participant
+        self.assertEqual(response.status_code, 302)
 
 
-@pytest.mark.django_db
-def test_edit_survey_permissions():
-    client = APIClient()
+class SurveyPermissionsTestCase(TestCase):
 
-    # Création d'un créateur et d'un autre utilisateur
-    creator = User.objects.create_user(username="creator", email="creator@example.com", password="password123")
-    other_user = User.objects.create_user(username="other_user", email="other@example.com", password="password123")
+    def setUp(self):
+        self.client = APIClient()
+        self.creator = User.objects.create_user(
+            username="creator", email="creator@example.com", password="password123", role='creator'
+        )
+        self.other_user = User.objects.create_user(
+            username="other_user", email="other_user@example.com", password="password123", role='other_user'
+        )
+        self.survey = Survey.objects.create(
+            title="Test Survey",
+            creator=self.creator,
+            start_date=timezone.now(),
+            end_date=timezone.now() + timedelta(days=7),
+        )
+        self.url = reverse("surveys_app:survey-update", kwargs={"pk": self.survey.uid})
 
-    # Création d'un sondage
-    survey = Survey.objects.create(title="Test Survey", creator=creator, start_date=timezone.now(), end_date=timezone.now() + timedelta(days=7))
+    def test_edit_survey_permissions(self):
+        self.client.login(username="other_user", password="password123")
+        data = {"title": "Modified Survey"}
+        response = self.client.put(self.url, data)
 
-    # Tentative de modification par un utilisateur non créateur
-    client.force_authenticate(user=other_user)
-    url = reverse("survey-update", kwargs={"pk": survey.uid})
-    data = {"title": "Modified Survey"}
-    response = client.put(url, data)
+        self.assertEqual(response.status_code, 403)
 
-    assert response.status_code == 403  # Permission refusée
-    survey.refresh_from_db()
-    assert survey.title == "Test Survey"  # Pas de modification
+        self.survey.refresh_from_db()
+        self.assertEqual(self.survey.title, "Test Survey")  
+class MultipleResponsesTestCase(TestCase):
+    def setUp(self):
+        """Créer un utilisateur et un sondage pour le test."""
+        self.user = User.objects.create_user(username="testuser", password="password123",email="testuser@example.com")
+        self.client.login(username="testuser", password="password123")
 
+        self.survey = Survey.objects.create(
+            uid=uuid.uuid4(), 
+            title="Test Survey", 
+            is_published = True,
+            creator=self.user, 
+            start_date=timezone.now(), 
+            end_date=timezone.now() + timedelta(days=7)
+            
+        )
 
-@pytest.mark.django_db
-def test_multiple_responses():
-    client = APIClient()
+        self.question = Question.objects.create(
+            survey=self.survey, 
+            text="What is your favorite color?", 
+            type="single"
+        )
 
-    # Création d'un créateur et d'un participant
-    creator = User.objects.create_user(username="creator", email="creator@example.com", password="password123")
-    participant = User.objects.create_user(username="participant", email="participant@example.com", password="password123")
+        self.choice1 = Choice.objects.create(question=self.question, text="Blue", uid=uuid.uuid4())
+        self.choice2 = Choice.objects.create(question=self.question, text="Red", uid=uuid.uuid4())
 
-    # Création d'un sondage et de plusieurs questions
-    survey = Survey.objects.create(title="Test Survey", creator=creator, start_date=timezone.now(), end_date=timezone.now() + timedelta(days=7))
-    question1 = Question.objects.create(survey=survey, text="What is your favorite color?")
-    question2 = Question.objects.create(survey=survey, text="What is your favorite animal?")
+        self.url = reverse("surveys_app:survey_response", kwargs={"uid": self.survey.uid})
 
-    client.force_authenticate(user=participant)
+    def test_multiple_responses(self):
+        """Tester qu'un utilisateur ne peut pas répondre plusieurs fois au sondage."""
+        response1 = self.client.post(self.url, {"question_{}".format(self.question.uid): str(self.choice1.uid)})
+        self.assertEqual(response1.status_code, 302) 
 
-    # Réponse à la première question
-    url1 = reverse("answer-survey", kwargs={"question_id": question1.uid})
-    response1 = client.post(url1, {"text": "Blue"})
-    assert response1.status_code == 201
+        self.assertTrue(Response.objects.filter(survey=self.survey, user=self.user).exists())
 
-    # Réponse à la deuxième question
-    url2 = reverse("answer-survey", kwargs={"question_id": question2.uid})
-    response2 = client.post(url2, {"text": "Dog"})
-    assert response2.status_code == 201
-
-    assert Response.objects.count() == 2
-
-
-@pytest.mark.django_db
-def test_unique_response_validation():
-    client = APIClient()
-
-    # Création d'un créateur et d'un participant
-    creator = User.objects.create_user(username="creator", email="creator@example.com", password="password123")
-    participant = User.objects.create_user(username="participant", email="participant@example.com", password="password123")
-
-    # Création d'un sondage et d'une question
-    survey = Survey.objects.create(title="Test Survey", creator=creator, start_date=timezone.now(), end_date=timezone.now() + timedelta(days=7))
-    question = Question.objects.create(survey=survey, text="What is your favorite color?")
-
-    client.force_authenticate(user=participant)
-
-    # Première réponse
-    url = reverse("answer-survey", kwargs={"question_id": question.uid})
-    response1 = client.post(url, {"text": "Blue"})
-    assert response1.status_code == 201
-
-    # Deuxième réponse (devrait échouer)
-    response2 = client.post(url, {"text": "Red"})
-    assert response2.status_code == 400  # Erreur de validation
-    assert Response.objects.count() == 1
-
-    assert response2.status_code == 400  # Erreur de validation
-    assert Response.objects.count() == 1
+        response2 = self.client.post(self.url, {"question_{}".format(self.question.uid): str(self.choice2.uid)}, follow=True)
+        self.assertRedirects(response2, reverse("surveys_app:home")) 

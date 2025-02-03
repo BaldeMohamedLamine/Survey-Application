@@ -16,6 +16,7 @@ class Survey(models.Model):
     is_published = models.BooleanField(default=False)
     image = models.ImageField(upload_to='', null=True, blank=True)
 
+
     def is_editable(self):
         return not self.is_published
 
