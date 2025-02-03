@@ -1,22 +1,13 @@
-version: '3.8'
+networks:
+  traefik-public:
+    external: true
 
 services:
   web:
-    build:
-      context: .
-      dockerfile: Dockerfile
-    image: survey-app:latest
-    restart: unless-stopped
+    image: laminebalde/surveys_app:latest
     env_file:
       - .env
-    volumes:
-      - .:/app
-      - static_volume:/app/static
-      - media_volume:/app/media
-    depends_on:
-      - db
-    networks:
-      - traefik-public
+    restart: always
     labels:
       - traefik.enable=true
       - traefik.docker.network=traefik-public
@@ -27,54 +18,50 @@ services:
       - traefik.http.routers.app-https.entrypoints=https
       - traefik.http.routers.app-https.tls=true
       - traefik.http.routers.app-https.tls.certresolver=le
-      - traefik.http.services.app.loadbalancer.server.port=8000
-
-  db:
-    image: postgres:15-alpine
-    restart: unless-stopped
-    environment:
-      - POSTGRES_DB=${DB_NAME:-survey_db}
-      - POSTGRES_USER=${DB_USER:-postgres}
-      - POSTGRES_PASSWORD=${DB_PASSWORD:-postgres}
-    volumes:
-      - postgres_data:/var/lib/postgresql/data
+      - traefik.http.services.app.loadbalancer.server.port=8080
     networks:
       - traefik-public
-
+    volumes:
+      - staticdata:/app/static
+  
   traefik:
     image: traefik:v2.10
-    restart: unless-stopped
+    env_file:
+      - .env
     ports:
       - "80:80"
       - "443:443"
-    volumes:
-      - /var/run/docker.sock:/var/run/docker.sock:ro
-      - traefik-public-certificates:/certificates
-    networks:
-      - traefik-public
     labels:
       - traefik.enable=true
       - traefik.docker.network=traefik-public
+      - traefik.constraint-label=traefik-public
       - traefik.http.middlewares.https-redirect.redirectscheme.scheme=https
       - traefik.http.middlewares.https-redirect.redirectscheme.permanent=true
       - traefik.http.middlewares.https-compress.compress=true
+      - traefik.http.middlewares.app-http.headers.stsSeconds=31536000
+      - traefik.http.middlewares.app-http.headers.stsIncludeSubdomains=true
+      - traefik.http.middlewares.app-http.headers.stsPreload=true
+      - traefik.http.middlewares.app-http.headers.forceSTSHeader=true
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - traefik-public-certificates:/certificates
+      - /var/log/traefik:/var/log
     command:
-      - --providers.docker=true
+      - --providers.docker
       - --providers.docker.exposedbydefault=false
       - --entrypoints.http.address=:80
       - --entrypoints.https.address=:443
-      - --certificatesresolvers.le.acme.email=${ACME_EMAIL}
-      - --certificatesresolvers.le.acme.storage=/certificates/acme.json
+      - --certificatesresolvers.le.acme.email=dev.harouna@gmail.com
       - --certificatesresolvers.le.acme.tlschallenge=true
       - --accesslog
-      - --log.level=INFO
+      - --accesslog.filePath=/var/log/access.log
+      - --entrypoints.http.http.redirections.entryPoint.to=https
+      - --entrypoints.http.http.redirections.entryPoint.scheme=https
+      - --log
+      - --api
+    networks:
+      - traefik-public
 
 volumes:
-  postgres_data:
-  static_volume:
-  media_volume:
+  staticdata:
   traefik-public-certificates:
-
-networks:
-  traefik-public:
-    external: true

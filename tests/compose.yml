@@ -1,0 +1,15 @@
+services:
+  db:
+    image: postgres:15-alpine
+    restart: unless-stopped
+    ports:
+      - 5459:5432
+    environment:
+      - POSTGRES_USER=survey_db_user
+      - POSTGRES_PASSWORD=z6M7fL7umK6s4K6
+    volumes:
+      - pg_data_survey:/var/lib/postgresql/data
+      - ./init-scripts:/docker-entrypoint-initdb.d
+
+volumes:
+  pg_data_survey:
