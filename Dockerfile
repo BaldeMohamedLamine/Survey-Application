@@ -24,5 +24,5 @@ COPY . .
 # Port d'exposition
 EXPOSE 8000
 
-# Commande de démarrage
-CMD ["python", "manage.py", "runserver", "0.0.0.0:8000"]
+# Définir la commande pour démarrer l'application avec Uvicorn
+CMD ["uvicorn", "config.asgi:application", "--host", "0.0.0.0", "--port", "8080"]

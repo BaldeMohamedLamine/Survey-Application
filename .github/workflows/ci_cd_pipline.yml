@@ -42,7 +42,7 @@ jobs:
        run: docker login -u $DOCKERHUB_USERNAME -p $DOCKERHUB_PASSWORD
 
      - name: Build the Docker image
-       run: docker build . -t laminebalde/surveys_app:-latest
+       run: docker build . -t laminebalde/surveys_app:latest
 
      - name: Push the Docker image
-       run: docker push laminebalde/surveys_app:-latest
+       run: docker push laminebalde/surveys_app:latest
