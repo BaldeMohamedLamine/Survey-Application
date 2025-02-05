@@ -17,6 +17,7 @@ djangorestframework==3.15.2
 filelock==3.17.0
 flake8==7.1.1
 flake8-docstrings==1.7.0
+h11==0.14.0
 identify==2.6.6
 iniconfig==2.0.0
 isort==6.0.0
@@ -47,4 +48,5 @@ sqlparse==0.5.3
 stevedore==5.4.0
 typing_extensions==4.12.2
 tzdata==2024.2
+uvicorn==0.34.0
 virtualenv==20.29.1

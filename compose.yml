@@ -51,7 +51,7 @@ services:
       - --providers.docker.exposedbydefault=false
       - --entrypoints.http.address=:80
       - --entrypoints.https.address=:443
-      - --certificatesresolvers.le.acme.email=dev.harouna@gmail.com
+      - --certificatesresolvers.le.acme.email=mohamedlaminebalde392@gmail.com
       - --certificatesresolvers.le.acme.tlschallenge=true
       - --accesslog
       - --accesslog.filePath=/var/log/access.log
