@@ -7,5 +7,5 @@ class ResponseViewSet(viewsets.ModelViewSet):
     serializer_class = ResponseSerializer
 
 class SurveyViewSet(viewsets.ModelViewSet):
-    queryset = Survey.objects.all().order_by('')
+    queryset = Survey.objects.all().order_by('end_date')
     serializer_class = SurveySerializer

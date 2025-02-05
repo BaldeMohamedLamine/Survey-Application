@@ -46,7 +46,7 @@ class HomeView(ListView):
             is_published=True, 
             start_date__lte=today, 
             end_date__gte=today
-        ).order_by('title')
+        ).order_by('end_date')
 
         search_query = self.request.GET.get('q')
         if search_query:
@@ -111,7 +111,7 @@ class SurveyListView(LoginRequiredMixin, ListView):
             queryset = queryset.filter(is_published=True)
         elif status == 'inactive':
             queryset = queryset.filter(is_published=False)
-        return queryset.order_by('title')
+        return queryset.order_by('end_date')
 
 
 class SurveyStep1View(LoginRequiredMixin, CreateView):
