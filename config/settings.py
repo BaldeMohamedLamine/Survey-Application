@@ -87,9 +87,15 @@ DATABASES = {
 }
 
 CSRF_TRUSTED_ORIGINS = [
+    "https://survey.molaminebalde.store",
     'http://127.0.0.1',
     'http://localhost',
 ]
+SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
+
+CSRF_COOKIE_HTTPONLY = False  # Permet au frontend d'accéder au cookie CSRF
+CSRF_COOKIE_SECURE = True  # Active uniquement en HTTPS
+CSRF_USE_SESSIONS = True
 
 
 
